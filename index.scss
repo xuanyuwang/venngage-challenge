@@ -1,19 +1,32 @@
 body {
   #page {
-    width: 700px;
-    height: 500px;
+	width: 500px;
+	height: 500px;
 	top: 100px;
-    margin: auto;
-    background-color: bisque;
+	margin: auto;
+	background-color: bisque;
 	position: relative;
 
-	.container {
+	svg#verticalLine, svg#horizontalLine {
 		position: absolute;
-		box-sizing: border-box;
-		&.dragging {
-			border: chocolate 1px dotted;
-			opacity: 0.4;
+		width: 100%;
+		height: 100%;
+		&.hide{
+			visibility: hidden;
 		}
+	  	line {
+		 	stroke: black;
+		  	stroke-width: 0.01;
+		  	stroke-dasharray: 0.05;
+	  	}
+	}
+	.container {
+	  position: absolute;
+	  box-sizing: border-box;
+	  &.dragging {
+		border: chocolate 1px dotted;
+		opacity: 0.4;
+	  }
 	}
   }
 }

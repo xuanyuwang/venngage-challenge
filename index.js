@@ -28,22 +28,38 @@ class Circle {
 
         this.element.appendChild(this.svg);
         this.svg.appendChild(this.circle);
+
+        this.coords = {};
+    }
+
+    updateCoords(){
+        const { offsetLeft: left, offsetWidth: width, offsetTop: top, offsetHeight: height } = this.element;
+        this.coords = {
+            top,
+            left,
+            centerX: left + width / 2,
+            centerY: top + height / 2,
+            right: left + width,
+            bottom: top + height
+        };
     }
 
     setPage(page){
         this.page = page;
+        this.updateCoords();
     }
 
     onMouseUpHandler(event) {
         this.element.classList.remove('dragging');
         this.element.removeEventListener('mouseup', this.onMouseUpHandlerBind, false);
         this.page.handleDrop(this.element);
+        this.updateCoords();
     }
 
     onMouseDownHandler(event) {
         this.element.classList.add('dragging');
         this.element.addEventListener('mouseup', this.onMouseUpHandlerBind, false);
-        this.page.handleDragging(this.element, event);
+        this.page.handleDragging(this, event);
     }
 }
 
@@ -54,6 +70,34 @@ class Page{
         this.element.id = 'page';
         this.moveData = {};
         this.shapes = [];
+        this.pageCenterX = null;
+        this.pageCenterY = null;
+
+        this.centerLineXSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        this.centerLineXSvg.id = 'verticalLine';
+        this.centerLineXSvg.classList.add('hide');
+        this.centerLineXSvg.setAttribute('viewBox', `0 0 10 10`);
+        this.lineX = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        this.lineX.setAttribute('x1', '5');
+        this.lineX.setAttribute('y1', '0');
+        this.lineX.setAttribute('x2', '5');
+        this.lineX.setAttribute('y2', '10');
+        this.lineX.setAttribute('stroke', 'black');
+        this.centerLineXSvg.appendChild(this.lineX);
+        this.element.appendChild(this.centerLineXSvg);
+
+        this.centerLineYSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        this.centerLineYSvg.id = 'horizontalLine';
+        this.centerLineYSvg.classList.add('hide');
+        this.centerLineYSvg.setAttribute('viewBox', `0 0 10 10`);
+        this.lineY = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        this.lineY.setAttribute('x1', '0');
+        this.lineY.setAttribute('y1', '5');
+        this.lineY.setAttribute('x2', '10');
+        this.lineY.setAttribute('y2', '5');
+        this.lineY.setAttribute('stroke', 'black');
+        this.centerLineYSvg.appendChild(this.lineY);
+        this.element.appendChild(this.centerLineYSvg);
     }
     pushBack(target, newTop, newLeft){
         const { offsetWidth: targetWidth, offsetHeight: targetHeight } = target;
@@ -90,8 +134,34 @@ class Page{
         this.shapes.push(shape);
         shape.setPage(this);
     }
+    isAlignWithPage(){
+        const { object } = this.moveData;
+        const { centerX, centerY } = object.coords;
+        let pageAlignX, pageAlignY;
+
+        if(Math.abs(this.pageCenterX - centerX) < 2){
+            this.centerLineXSvg.classList.remove('hide');
+            pageAlignX = true;
+        }else{
+            this.centerLineXSvg.classList.add('hide');
+            pageAlignX = false;
+        }
+
+        if(Math.abs(this.pageCenterY - centerY) < 2){
+            this.centerLineYSvg.classList.remove('hide');
+            pageAlignY = true;
+        }else{
+            this.centerLineYSvg.classList.add('hide');
+            pageAlignY = false;
+        }
+
+        return {
+            pageAlignX,
+            pageAlignY
+        };
+    }
     onMouseMoveHandler(event){
-        const { target, startTop, startLeft, startX, startY } = this.moveData;
+        const { object, target, startTop, startLeft, startX, startY } = this.moveData;
         const deltaY = event.pageY - startY;
         const deltaX = event.pageX - startX;
         const newTop = startTop + deltaY;
@@ -99,18 +169,36 @@ class Page{
         const { correctedTop, correctedLeft } = this.pushBack(target, newTop, newLeft);
         target.style.top = `${correctedTop}px`;
         target.style.left = `${correctedLeft}px`;
+        object.updateCoords();
+        this.moveData.pageAlignment = this.isAlignWithPage();
     }
     handleDrop(target){
+        // snap to center
+        const {pageAlignX, pageAlignY} = this.moveData.pageAlignment;
+        if(pageAlignX){
+            target.style.left = `${this.pageCenterX - target.offsetWidth / 2}px`;
+        }
+        if(pageAlignY){
+            target.style.top = `${this.pageCenterY - target.offsetHeight / 2}px`;
+        }
+
         this.moveData = {};
         this.element.removeEventListener('mousemove', this.onMouseMoveHandlerBind);
     }
     handleDragging(target, mouseEvent){
+        this.element.removeChild(target.element);
+        this.element.appendChild(target.element);
+        this.pageCenterX = this.element.offsetWidth / 2;
+        this.pageCenterY = this.element.offsetHeight / 2;
+        const { element } = target;
         this.moveData = {
-            target: target,
-            startTop: target.offsetTop,
-            startLeft: target.offsetLeft,
+            object: target,
+            target: element,
+            startTop: element.offsetTop,
+            startLeft: element.offsetLeft,
             startX: mouseEvent.pageX,
-            startY: mouseEvent.pageY
+            startY: mouseEvent.pageY,
+            pageAlignment: {}
         };
         this.element.addEventListener('mousemove', this.onMouseMoveHandlerBind);
     }
