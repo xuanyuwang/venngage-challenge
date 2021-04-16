@@ -72,6 +72,8 @@ class Page{
         this.shapes = [];
         this.pageCenterX = null;
         this.pageCenterY = null;
+        this.verticalAlignmentLine = null;
+        this.horizontalAlignmentLine = null;
 
         this.centerLineXSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         this.centerLineXSvg.id = 'verticalLine';
@@ -160,6 +162,98 @@ class Page{
             pageAlignY
         };
     }
+    cleanAlignmentLines(){
+        const existingVerticalLines = document.getElementsByClassName('vertical');
+        for (let i = 0; i < existingVerticalLines.length; i++) {
+            existingVerticalLines[i].remove();
+        }
+        const existingHorizontalLines = document.getElementsByClassName('horizontal');
+        for (let i = 0; i < existingHorizontalLines.length; i++) {
+            existingHorizontalLines[i].remove();
+        }
+    }
+    isAlignWithCloestShape(){
+        const { object } = this.moveData;
+        const { centerX, centerY } = object.coords;
+        let minDistance = Infinity;
+        let closestObject;
+        this.shapes.forEach((shape) => {
+            const { centerX: x, centerY: y } = shape.coords;
+            const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+            if(distance < minDistance && shape.element.id != object.element.id){
+                closestObject = shape;
+                minDistance = distance;
+            }
+        });
+        if(!closestObject){
+            return;
+        }
+
+        const alignment = {};
+        if(Math.abs(closestObject.coords.left - object.coords.left) < 2 || Math.abs(closestObject.coords.left - object.coords.right) < 2 || Math.abs(closestObject.coords.left - object.coords.centerX) < 2){
+            alignment.type = 'vertical';
+            alignment.pos = closestObject.coords.left;
+            alignment.points = [
+                closestObject.coords.top,
+                closestObject.coords.bottom,
+                object.coords.top,
+                object.coords.bottom
+            ];
+        }else if(Math.abs(closestObject.coords.right - object.coords.right) < 2 || Math.abs(closestObject.coords.right - object.coords.left) < 2 || Math.abs(closestObject.coords.right - object.coords.centerX) < 2){
+            alignment.type = 'vertical';
+            alignment.pos = closestObject.coords.right;
+            alignment.points = [
+                closestObject.coords.top,
+                closestObject.coords.bottom,
+                object.coords.top,
+                object.coords.bottom
+            ];
+        }else if(Math.abs(closestObject.coords.centerX - object.coords.centerX) < 2 || Math.abs(closestObject.coords.centerX - object.coords.left) < 2 || Math.abs(closestObject.coords.centerX - object.coords.right) < 2){
+            alignment.type = 'vertical';
+            alignment.pos = closestObject.coords.centerX;
+            alignment.points = [
+                closestObject.coords.top,
+                closestObject.coords.bottom,
+                object.coords.top,
+                object.coords.bottom
+            ];
+        }else if(Math.abs(closestObject.coords.centerY - object.coords.centerY) < 2 || Math.abs(closestObject.coords.centerY - object.coords.bottom) < 2 || Math.abs(closestObject.coords.centerY - object.coords.top) < 2){
+            alignment.type = 'horizontal';
+            alignment.pos = closestObject.coords.centerY;
+            alignment.params = [
+                closestObject.coords.left,
+                closestObject.coords.right,
+                object.coords.left,
+                object.coords.right
+            ];
+        }
+
+        this.cleanAlignmentLines();
+        if(alignment.type == 'vertical'){
+            const start = Math.min(...alignment.points);
+            const end = Math.max(...alignment.points);
+
+            this.verticalAlignmentLine = document.createElement('div');
+            this.verticalAlignmentLine.classList.add('vertical');
+            this.verticalAlignmentLine.style.height = `${end - start}px`;
+            this.verticalAlignmentLine.style.top = `${start}px`;
+            this.verticalAlignmentLine.style.left = `${alignment.pos}px`;
+            this.element.appendChild(this.verticalAlignmentLine);
+        }else if(alignment.type == 'horizontal'){
+            const start = Math.min(alignment.points);
+            const end = Math.max(alignment.points);
+
+            this.horizontalAlignmentLine = document.createElement('div');
+            this.horizontalAlignmentLine.classList.add('horizontal');
+            this.horizontalAlignmentLine.style.width = `${end - start}px`;
+            this.horizontalAlignmentLine.style.top = `${alignment.pos}px`;
+            this.horizontalAlignmentLine.style.left = `${start}px`;
+            this.element.appendChild(this.horizontalAlignmentLine);
+        }else{
+            this.verticalAlignmentLine = null;
+            this.horizontalAlignmentLine = null;
+        }
+    }
     onMouseMoveHandler(event){
         const { object, target, startTop, startLeft, startX, startY } = this.moveData;
         const deltaY = event.pageY - startY;
@@ -171,6 +265,7 @@ class Page{
         target.style.left = `${correctedLeft}px`;
         object.updateCoords();
         this.moveData.pageAlignment = this.isAlignWithPage();
+        this.isAlignWithCloestShape();
     }
     handleDrop(target){
         // snap to center
@@ -184,6 +279,7 @@ class Page{
 
         this.moveData = {};
         this.element.removeEventListener('mousemove', this.onMouseMoveHandlerBind);
+        this.cleanAlignmentLines();
     }
     handleDragging(target, mouseEvent){
         this.element.removeChild(target.element);
@@ -211,10 +307,10 @@ const Scene = () => {
     const circles = [firstCircle, secondCircle, thirdCircle]
 
     const page = new Page();
+    document.body.appendChild(page.element);
     circles.forEach((circle) => {
         page.addShape(circle);
     });
-    document.body.appendChild(page.element);
 };
 
 Scene();

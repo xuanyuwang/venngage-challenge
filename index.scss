@@ -20,6 +20,21 @@ body {
 		  	stroke-dasharray: 0.05;
 	  	}
 	}
+
+	.vertical {
+		position: absolute;
+		width: 1px;
+		border-left-width: 1px;
+		border-left-color: black;
+		border-left-style: dashed;
+	}
+	.horizontal {
+		position: absolute;
+		height: 1px;
+		border-top-width: 1px;
+		border-top-color: black;
+		border-top-style: dashed;
+	}
 	.container {
 	  position: absolute;
 	  box-sizing: border-box;
