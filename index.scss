@@ -1,0 +1,19 @@
+body {
+  #page {
+    width: 700px;
+    height: 500px;
+	top: 100px;
+    margin: auto;
+    background-color: bisque;
+	position: relative;
+
+	.container {
+		position: absolute;
+		box-sizing: border-box;
+		&.dragging {
+			border: chocolate 1px dotted;
+			opacity: 0.4;
+		}
+	}
+  }
+}
