@@ -4,4 +4,6 @@ I don't know how should I response the last question from the application. There
 
 The code is finished.
 
-Please visit https://www.xuanyu.dev/venngage-challenge/ to see the demo.
+I'm not sure what does "align to page left or right".
+
+Please visit https://www.xuanyu.dev/venngage-challenge/ to see the demo. Tested with latest Chrome.
